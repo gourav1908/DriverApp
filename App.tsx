@@ -128,10 +128,31 @@ const App = (): JSX.Element => {
 useEffect(() => {
   const ridesRef = database().ref('/rides');
 
+  // Track existing ride IDs
+  const existingRideIds: Set<string> = new Set();
+
+  // Fetch current rides once and mark them as existing
+  ridesRef.once('value', snapshot => {
+    snapshot.forEach(child => {
+  existingRideIds.add(child.key ?? '');
+  return undefined; // <- satisfies TS type
+});
+  });
+
   // Listen for child_added
   const handleChildAdded = (snapshot: any) => {
     const ride = snapshot.val();
     if (!ride) return;
+
+    const rideId = snapshot.key;
+    if (!rideId) return;
+    // Skip if already exists
+      if (existingRideIds.has(rideId)) return;
+
+      existingRideIds.add(rideId);
+
+    // Add this ride to existing set to avoid duplicate notifications
+    existingRideIds.add(rideId);
 
     // Show local notification for new ride
     PushNotification.localNotification({
